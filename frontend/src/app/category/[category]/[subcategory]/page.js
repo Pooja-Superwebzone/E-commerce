@@ -11,7 +11,7 @@ export default async function SubCategoryPage({ params }) {
   });
 
   return (
-    <div className="container mx-auto py-10 px-4">
+    <div className="container  mx-auto py-10 px-4 ">
       <div className="mb-8">
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
           <Link href={`/category/${category}`} className="hover:text-blue-600">
@@ -20,7 +20,7 @@ export default async function SubCategoryPage({ params }) {
           <span>/</span>
           <span className="capitalize">{subcategory}</span>
         </div>
-        <h1 className="text-2xl font-bold capitalize">
+        <h1 className="text-2xl font-bold capitalize text-white">
           {category} - {subcategory}
         </h1>
       </div>

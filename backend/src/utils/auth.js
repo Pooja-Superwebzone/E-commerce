@@ -1,4 +1,6 @@
 const jwt = require("jsonwebtoken");
+const { normalizeRole } = require("./roles");
+const { normalizePermissions } = require("./permissions");
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 
@@ -8,6 +10,8 @@ function signAuthToken(user) {
       userId: user.userId,
       email: user.email,
       name: user.name,
+      role: normalizeRole(user.role),
+      permissions: normalizePermissions(user.permissions, user.role),
     },
     JWT_SECRET,
     { expiresIn: "7d" }

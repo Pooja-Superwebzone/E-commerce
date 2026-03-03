@@ -2,8 +2,11 @@ const express = require("express");
 const { ObjectId } = require("mongodb");
 const { getDb } = require("../config/db");
 const { requireAuth } = require("../middleware/auth");
+const { getCache, setCache } = require("../config/cache");
 
 const router = express.Router();
+const CART_CACHE_TTL_SECONDS = 60;
+const getCartCacheKey = (userId) => `cart:${String(userId)}`;
 
 function normalizeProduct(product) {
   return {
@@ -26,8 +29,15 @@ async function getUserCart(userId) {
 
 router.get("/", requireAuth, async (req, res) => {
   try {
+    const cacheKey = getCartCacheKey(req.authUser.userId);
+    const cachedItems = await getCache(cacheKey);
+    if (Array.isArray(cachedItems)) {
+      return res.status(200).json({ items: cachedItems });
+    }
+
     const userId = new ObjectId(req.authUser.userId);
     const { items } = await getUserCart(userId);
+    await setCache(cacheKey, items, CART_CACHE_TTL_SECONDS);
     return res.status(200).json({ items });
   } catch {
     return res.status(500).json({ message: "Failed to load cart." });
@@ -38,12 +48,14 @@ router.delete("/", requireAuth, async (req, res) => {
   try {
     const db = await getDb();
     const carts = db.collection("carts");
-    const userId = new ObjectId(req.authUser.userId);
+    const userIdString = req.authUser.userId;
+    const userId = new ObjectId(userIdString);
     await carts.updateOne(
       { userId },
       { $set: { items: [], updatedAt: new Date() }, $setOnInsert: { createdAt: new Date() } },
       { upsert: true }
     );
+    await setCache(getCartCacheKey(userIdString), [], CART_CACHE_TTL_SECONDS);
     return res.status(200).json({ items: [] });
   } catch {
     return res.status(500).json({ message: "Failed to clear cart." });
@@ -57,7 +69,8 @@ router.post("/add", requireAuth, async (req, res) => {
       return res.status(400).json({ message: "Product payload is required." });
     }
 
-    const userId = new ObjectId(req.authUser.userId);
+    const userIdString = req.authUser.userId;
+    const userId = new ObjectId(userIdString);
     const { carts, items } = await getUserCart(userId);
     const productId = Number(product.id);
     const index = items.findIndex((item) => Number(item.id) === productId);
@@ -77,6 +90,7 @@ router.post("/add", requireAuth, async (req, res) => {
       { upsert: true }
     );
 
+    await setCache(getCartCacheKey(userIdString), items, CART_CACHE_TTL_SECONDS);
     return res.status(200).json({ items });
   } catch {
     return res.status(500).json({ message: "Failed to add item." });
@@ -92,7 +106,8 @@ router.patch("/item", requireAuth, async (req, res) => {
         .json({ message: "productId and quantity are required." });
     }
 
-    const userId = new ObjectId(req.authUser.userId);
+    const userIdString = req.authUser.userId;
+    const userId = new ObjectId(userIdString);
     const { carts, items } = await getUserCart(userId);
     const normalizedProductId = Number(productId);
     const nextItems =
@@ -113,6 +128,7 @@ router.patch("/item", requireAuth, async (req, res) => {
       { upsert: true }
     );
 
+    await setCache(getCartCacheKey(userIdString), nextItems, CART_CACHE_TTL_SECONDS);
     return res.status(200).json({ items: nextItems });
   } catch {
     return res.status(500).json({ message: "Failed to update item." });
@@ -126,7 +142,8 @@ router.delete("/item", requireAuth, async (req, res) => {
       return res.status(400).json({ message: "productId is required." });
     }
 
-    const userId = new ObjectId(req.authUser.userId);
+    const userIdString = req.authUser.userId;
+    const userId = new ObjectId(userIdString);
     const { carts, items } = await getUserCart(userId);
     const nextItems = items.filter((item) => Number(item.id) !== productId);
 
@@ -139,6 +156,7 @@ router.delete("/item", requireAuth, async (req, res) => {
       { upsert: true }
     );
 
+    await setCache(getCartCacheKey(userIdString), nextItems, CART_CACHE_TTL_SECONDS);
     return res.status(200).json({ items: nextItems });
   } catch {
     return res.status(500).json({ message: "Failed to remove item." });

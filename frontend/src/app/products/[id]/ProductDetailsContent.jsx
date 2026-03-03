@@ -125,12 +125,29 @@ export default function ProductDetailsContent({
 
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-2">
               <p className="text-sm font-semibold text-gray-900">Product Details</p>
+              {product.brand && (
+                <p className="text-sm text-gray-600">
+                  Brand: <span className="capitalize">{product.brand}</span>
+                </p>
+              )}
+              {product.sku && (
+                <p className="text-sm text-gray-600">SKU: {product.sku}</p>
+              )}
+              {product.hsnCode && (
+                <p className="text-sm text-gray-600">HSN: {product.hsnCode}</p>
+              )}
               <p className="text-sm text-gray-600">
                 Category: <span className="capitalize">{product.category}</span>
               </p>
               <p className="text-sm text-gray-600">
                 Subcategory:{" "}
                 <span className="capitalize">{product.subcategory || "General"}</span>
+              </p>
+              <p className="text-sm text-gray-600">
+                GST: {Number(product.gstPercent || 0)}%
+              </p>
+              <p className="text-sm text-gray-600">
+                Stock: {Number(product.stock || 0) > 0 ? `${Number(product.stock || 0)} available` : "Out of stock"}
               </p>
               <p className="text-sm text-gray-600">Delivery: FREE in 2-3 days</p>
               <p className="text-sm text-gray-600">Return Policy: 30-day easy returns</p>

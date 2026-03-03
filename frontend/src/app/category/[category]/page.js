@@ -16,7 +16,7 @@ export default async function CategoryPage({ params }) {
 
   return (
     <div className="container mx-auto py-10 px-4">
-      <h1 className="text-2xl font-bold mb-8 capitalize">{category}</h1>
+      <h1 className="text-2xl font-bold mb-8 capitalize text-white">{category}</h1>
 
       {subcategories.length > 0 && (
         <div className="mb-8 flex flex-wrap gap-3">

@@ -66,7 +66,8 @@ export default function Navbar() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { getTotalItems } = useCart();
-    const { user, logout } = useAuth();
+    const { user, role, isAdmin, canAccess, logout } = useAuth();
+    const canOpenAdminPanel = isAdmin && canAccess("dashboard");
 
     useEffect(() => {
         const query = searchParams.get("search") || "";
@@ -128,6 +129,14 @@ export default function Navbar() {
                                     <UserIcon />
                                     <span className="hidden md:inline text-sm whitespace-nowrap">{user.name}</span>
                                   </div>
+                                  {canOpenAdminPanel && (
+                                    <Link
+                                      href="/admin"
+                                      className="text-xs sm:text-sm py-2 px-3 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 transition font-semibold whitespace-nowrap"
+                                    >
+                                      Admin Panel
+                                    </Link>
+                                  )}
                                   <button
                                       onClick={async () => {
                                           await logout();
@@ -196,6 +205,15 @@ export default function Navbar() {
                 {/* Mobile Menu */}
                 {isMenuOpen && (
                     <div className="sm:hidden bg-white border-t border-gray-200 px-3 py-3 space-y-1">
+                        {canOpenAdminPanel && (
+                            <Link
+                                href="/admin"
+                                className="flex items-center gap-2 px-3 py-2.5 text-gray-900 hover:bg-amber-50 rounded-lg transition text-sm font-semibold"
+                            >
+                                <LockIcon />
+                                <span>Admin Panel</span>
+                            </Link>
+                        )}
                         <Link
                             href="/products"
                             className="flex items-center gap-2 px-3 py-2.5 text-gray-900 hover:bg-blue-50 rounded-lg transition text-sm font-semibold"

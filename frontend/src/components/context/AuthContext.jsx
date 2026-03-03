@@ -4,6 +4,33 @@ import { createContext, useState, useContext, useEffect } from "react";
 import { apiUrl } from "@/lib/api";
 
 const AuthContext = createContext();
+const ADMIN_ROLES = new Set(["super_admin", "admin", "sub_admin"]);
+const PERMISSION_KEYS = [
+  "dashboard",
+  "product_add",
+  "product_edit",
+  "product_delete",
+  "manage_users",
+  "manage_admins",
+  "orders",
+];
+
+function normalizeUser(user) {
+  if (!user) return null;
+  const permissions = user.permissions && typeof user.permissions === "object"
+    ? user.permissions
+    : {};
+  const normalizedPermissions = {};
+  for (const key of PERMISSION_KEYS) {
+    normalizedPermissions[key] = Boolean(permissions[key]);
+  }
+
+  return {
+    ...user,
+    role: String(user.role || "user").toLowerCase(),
+    permissions: normalizedPermissions,
+  };
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -22,7 +49,7 @@ export function AuthProvider({ children }) {
           return;
         }
         const data = await response.json();
-        setUser(data.user || null);
+        setUser(normalizeUser(data.user));
       } catch {
         setUser(null);
       } finally {
@@ -47,8 +74,9 @@ export function AuthProvider({ children }) {
       throw new Error(data.message || "Login failed.");
     }
 
-    setUser(data.user);
-    return data.user;
+    const normalized = normalizeUser(data.user);
+    setUser(normalized);
+    return normalized;
   };
 
   const logout = async () => {
@@ -74,12 +102,43 @@ export function AuthProvider({ children }) {
       throw new Error(data.message || "Signup failed.");
     }
 
-    setUser(data.user);
-    return data.user;
+    const normalized = normalizeUser(data.user);
+    setUser(normalized);
+    return normalized;
+  };
+
+  const role = user?.role || "user";
+  const isAdmin = ADMIN_ROLES.has(role);
+  const isSuperAdmin = role === "super_admin";
+  const permissions = user?.permissions || {
+    dashboard: false,
+    product_add: false,
+    product_edit: false,
+    product_delete: false,
+    manage_users: false,
+    manage_admins: false,
+    orders: false,
+  };
+  const canAccess = (key) => {
+    if (isSuperAdmin) return true;
+    return Boolean(permissions[key]);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, signup }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        role,
+        permissions,
+        isAdmin,
+        isSuperAdmin,
+        canAccess,
+        loading,
+        login,
+        logout,
+        signup,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

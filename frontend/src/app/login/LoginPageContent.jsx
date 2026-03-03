@@ -21,20 +21,26 @@ export default function LoginPageContent() {
     setError("");
 
     try {
+      let authenticatedUser = null;
       if (isSignup) {
         if (!name || !email || !password) {
           setError("Please fill in all fields");
           return;
         }
-        await signup(email, password, name);
+        authenticatedUser = await signup(email, password, name);
       } else {
         if (!email || !password) {
           setError("Please fill in all fields");
           return;
         }
-        await login(email, password);
+        authenticatedUser = await login(email, password);
       }
-      router.push("/");
+      const role = String(authenticatedUser?.role || "user").toLowerCase();
+      if (role === "super_admin" || role === "admin" || role === "sub_admin") {
+        router.push("/admin");
+      } else {
+        router.push("/");
+      }
     } catch (err) {
       setError(err?.message || "An error occurred. Please try again.");
     }
@@ -58,7 +64,7 @@ export default function LoginPageContent() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 text-black">
           {isSignup && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
