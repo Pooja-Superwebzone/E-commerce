@@ -1,6 +1,7 @@
 let redisClient = null;
 let isRedisReady = false;
-const CACHE_ENABLED = String(process.env.CACHE_ENABLED || "true").toLowerCase() !== "false";
+const CACHE_ENABLED =
+  String(process.env.CACHE_ENABLED || "true").toLowerCase() !== "false";
 
 function safeJsonParse(value) {
   try {
@@ -10,11 +11,26 @@ function safeJsonParse(value) {
   }
 }
 
+function getRedisUrl() {
+  return String(process.env.REDIS_URL || "").trim();
+}
+
+function isValidRedisUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "redis:" || parsed.protocol === "rediss:";
+  } catch {
+    return false;
+  }
+}
+
 async function createRedisClient() {
   if (!CACHE_ENABLED) return null;
 
-  const redisUrl = process.env.REDIS_URL;
+  const redisUrl = getRedisUrl();
   if (!redisUrl) return null;
+
+  if (!isValidRedisUrl(redisUrl)) return null;
 
   let redisPackage;
   try {
@@ -30,18 +46,25 @@ async function createRedisClient() {
     },
   });
 
-  client.on("error", () => {
-    isRedisReady = false;
-  });
   client.on("ready", () => {
     isRedisReady = true;
   });
+
+  client.on("error", () => {
+    isRedisReady = false;
+  });
+
   client.on("end", () => {
     isRedisReady = false;
   });
 
-  await client.connect();
-  return client;
+  try {
+    await client.connect();
+    return client;
+  } catch {
+    isRedisReady = false;
+    return null;
+  }
 }
 
 async function getClient() {
@@ -53,6 +76,13 @@ async function getClient() {
     redisClient = null;
     return null;
   }
+}
+
+async function initCache() {
+  const client = await getClient();
+  const active = CACHE_ENABLED && Boolean(client) && isRedisReady;
+  console.log(active ? "[cache] Redis connected" : "[cache] Redis not connected");
+  return active;
 }
 
 async function getCache(key) {
@@ -92,8 +122,24 @@ async function delCache(key) {
   }
 }
 
+async function delCacheByPrefix(prefix) {
+  const client = await getClient();
+  if (!client || !isRedisReady) return false;
+
+  try {
+    const keys = await client.keys(`${prefix}*`);
+    if (!Array.isArray(keys) || keys.length === 0) return true;
+    await client.del(keys);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 module.exports = {
+  initCache,
   getCache,
   setCache,
   delCache,
+  delCacheByPrefix,
 };

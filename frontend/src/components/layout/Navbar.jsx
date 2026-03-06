@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCart } from "@/components/context/CartContext";
 import { useAuth } from "@/components/context/AuthContext";
 import { useWishlist } from "@/components/context/WishlistContext";
@@ -61,18 +61,23 @@ const MenuIcon = () => (
 
 export default function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState("");
     const { wishlistItems } = useWishlist();
     const router = useRouter();
+    const pathname = usePathname();
     const searchParams = useSearchParams();
+    const initialQuery = searchParams.get("search") || "";
+    const [searchQuery, setSearchQuery] = useState(initialQuery);
     const { getTotalItems } = useCart();
-    const { user, role, isAdmin, canAccess, logout } = useAuth();
+    const { user, isAdmin, canAccess, logout } = useAuth();
     const canOpenAdminPanel = isAdmin && canAccess("dashboard");
+    const isAdminRoute = String(pathname || "").startsWith("/admin");
+    const showShopperActions = !isAdmin;
 
     useEffect(() => {
-        const query = searchParams.get("search") || "";
-        setSearchQuery(query);
-    }, [searchParams]);
+        if (user && isAdmin && !isAdminRoute) {
+            router.replace("/admin");
+        }
+    }, [user, isAdmin, isAdminRoute, router]);
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -92,14 +97,17 @@ export default function Navbar() {
                     {/* Top Row */}
                     <div className="flex justify-between items-center py-5 ">
                         {/* Logo */}
-                        <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+                        <Link href={isAdmin ? "/admin" : "/"} className="flex items-center gap-2 flex-shrink-0">
                             <div className="text-2xl font-bold flex items-center gap-1.5">
                                 <span className="bg-blue-600 text-white px-2.5 py-1 rounded text-base font-bold">S</span>
-                                <span className="text-gray-900 font-bold hidden sm:inline">ShopHub</span>
+                                <span className="text-gray-900 font-bold hidden sm:inline">
+                                    {isAdmin ? "Admin Dashboard" : "ShopHub"}
+                                </span>
                             </div>
                         </Link>
 
                         {/* Search Bar (Main Feature) */}
+                        {!isAdmin && (
                         <form onSubmit={handleSearch} className="flex-1 mx-3 sm:mx-6 max-w-2xl hidden sm:flex">
                             <div className="w-full relative flex items-center bg-gray-50 rounded-lg border-2 border-gray-200 hover:border-blue-600 focus-within:border-blue-600 transition">
                                 <input
@@ -114,6 +122,7 @@ export default function Navbar() {
                                 </button>
                             </div>
                         </form>
+                        )}
 
                         {/* Right Icons */}
                         <div className="flex items-center gap-1 sm:gap-3 ml-2">
@@ -149,6 +158,7 @@ export default function Navbar() {
                                 </div>
                             )}
 
+                            {showShopperActions && (
                             <Link href="/wishlist" className="relative">
                                 <button className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded-lg hover:bg-pink-50 transition text-gray-900 hover:text-pink-600 font-semibold relative">
                                     <HeartIcon />
@@ -161,8 +171,10 @@ export default function Navbar() {
                                     )}
                                 </button>
                             </Link>
+                            )}
 
                             {/* Cart */}
+                            {showShopperActions && (
                             <Link href="/cart" className="relative">
                                 <button className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded-lg hover:bg-blue-50 transition text-gray-900 hover:text-blue-600 font-semibold relative">
                                     <CartIcon />
@@ -174,6 +186,7 @@ export default function Navbar() {
                                     )}
                                 </button>
                             </Link>
+                            )}
 
                             {/* Mobile Menu Button */}
                             <button
@@ -186,6 +199,7 @@ export default function Navbar() {
                     </div>
 
                     {/* Mobile Search */}
+                    {!isAdmin && (
                     <form onSubmit={handleSearch} className="sm:hidden pb-3">
                         <div className="relative flex items-center bg-gray-50 rounded-lg border-2 border-gray-200 hover:border-blue-600 focus-within:border-blue-600 transition">
                             <input
@@ -200,6 +214,7 @@ export default function Navbar() {
                             </button>
                         </div>
                     </form>
+                    )}
                 </div>
 
                 {/* Mobile Menu */}
@@ -214,20 +229,24 @@ export default function Navbar() {
                                 <span>Admin Panel</span>
                             </Link>
                         )}
-                        <Link
-                            href="/products"
-                            className="flex items-center gap-2 px-3 py-2.5 text-gray-900 hover:bg-blue-50 rounded-lg transition text-sm font-semibold"
-                        >
-                            <CartIcon />
-                            <span>Products</span>
-                        </Link>
-                        <Link
-                            href="#"
-                            className="flex items-center gap-2 px-3 py-2.5 text-gray-900 hover:bg-blue-50 rounded-lg transition text-sm font-semibold"
-                        >
-                            <StoreIcon />
-                            <span>Become Seller</span>
-                        </Link>
+                        {!isAdmin && (
+                            <>
+                                <Link
+                                    href="/products"
+                                    className="flex items-center gap-2 px-3 py-2.5 text-gray-900 hover:bg-blue-50 rounded-lg transition text-sm font-semibold"
+                                >
+                                    <CartIcon />
+                                    <span>Products</span>
+                                </Link>
+                                <Link
+                                    href="#"
+                                    className="flex items-center gap-2 px-3 py-2.5 text-gray-900 hover:bg-blue-50 rounded-lg transition text-sm font-semibold"
+                                >
+                                    <StoreIcon />
+                                    <span>Become Seller</span>
+                                </Link>
+                            </>
+                        )}
                     </div>
                 )}
             </nav>

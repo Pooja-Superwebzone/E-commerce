@@ -4,8 +4,10 @@ const cookieParser = require("cookie-parser");
 require("dotenv").config();
 
 const { initDb } = require("./config/initDb");
+const { initCache } = require("./config/cache");
 const authRoutes = require("./routes/auth.routes");
 const cartRoutes = require("./routes/cart.routes");
+const orderRoutes = require("./routes/order.routes");
 const catalogRoutes = require("./routes/catalog.routes");
 const adminRoutes = require("./routes/admin.routes");
 
@@ -29,11 +31,13 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/orders", orderRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api", catalogRoutes);
 
 initDb()
-  .then(() => {
+  .then(async () => {
+    await initCache();
     app.listen(PORT, () => {
       console.log(`Backend running on http://localhost:${PORT}`);
       console.log("MongoDB ready: collections users, carts");

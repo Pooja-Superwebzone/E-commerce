@@ -114,6 +114,23 @@ export function CartProvider({ children }) {
     }
   };
 
+  const checkout = async (checkoutDetails = {}) => {
+    if (!requireAuth()) return null;
+    const response = await fetch(apiUrl("/orders/checkout"), {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(checkoutDetails),
+      cache: "no-store",
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data?.message || "Failed to place order.");
+    }
+    setCart([]);
+    return data?.order || null;
+  };
+
   const getTotalPrice = () => {
     return cart.reduce((total, item) => total + item.price * item.quantity, 0);
   };
@@ -130,6 +147,7 @@ export function CartProvider({ children }) {
         removeFromCart,
         updateQuantity,
         clearCart,
+        checkout,
         getTotalPrice,
         getTotalItems,
       }}
